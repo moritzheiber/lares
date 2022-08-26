@@ -3,7 +3,7 @@ use async_std::prelude::FutureExt;
 use either::Either;
 use futures::stream::{self, StreamExt};
 use log::{info, warn};
-use prettytable::{cell, format, row, Table};
+use prettytable::{format, row, Table};
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -98,7 +98,7 @@ impl FeedCommand {
 
                     let feed = {
                         let conn = state.db.get()?;
-                        Feed::get_by_url(&conn, &url)?
+                        Feed::get_by_url(&conn, url)?
                     };
 
                     if feed.is_some() {
@@ -323,7 +323,7 @@ impl GroupCommand {
         let group = Group::get_by_name(&conn, &group)
             .with_context(|| anyhow!("Unable to find group '{}'", group))?;
         if let Ok(feed_groups) = FeedGroup::get_by_group(&conn, group.id) {
-            if feed_groups.feed_ids.len() != 0 {
+            if !feed_groups.feed_ids.is_empty() {
                 println!("Warning: there are still feeds belong to this group");
             }
             feed_groups.delete(&conn)?;
@@ -442,7 +442,7 @@ impl Options {
             .listen(format!("{}:{}", config.host, config.port))
             .join(crwaler.runloop())
             .await;
-        (web?, crawl?);
+        web?;crawl?;
         Ok(())
     }
 

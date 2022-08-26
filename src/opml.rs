@@ -139,11 +139,9 @@ fn from_reader<B: BufRead>(mut reader: Reader<B>) -> ImportResult {
             }
             Ok(Event::End(ref e)) => {
                 debug!("end tag </{}>", String::from_utf8_lossy(e.name()));
-                if e.name() == b"outline" {
-                    if feeds.as_ref().map(|x| !x.is_empty()).unwrap_or(false) {
-                        info!("processed group: {:?}", group.as_ref());
-                        result.push((group.take(), feeds.take().unwrap()));
-                    }
+                if e.name() == b"outline" && feeds.as_ref().map(|x| !x.is_empty()).unwrap_or(false) {
+                    info!("processed group: {:?}", group.as_ref());
+                    result.push((group.take(), feeds.take().unwrap()));
                 }
             }
             Ok(Event::Empty(ref e)) => {

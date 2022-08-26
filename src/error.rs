@@ -5,20 +5,20 @@ macro_rules! error {
         ::tide::Error::from_str(
             ($code as u16).try_into().unwrap_or(::tide::StatusCode::BadRequest),
             format!($($t)*)
-        );
+        )
     };
 }
 
 macro_rules! bail {
     ($code: expr, $($t:tt)*) => {
-        return Err(error!($code, $($t)*));
+        return Err(error!($code, $($t)*))
     };
 }
 
 macro_rules! _ensure {
     ($cond: expr, $code: expr, $($t:tt)*) => {
         if !($cond) {
-            bail!($code, $($t)*);
+            bail!($code, $($t)*)
         }
     };
 }
@@ -33,6 +33,9 @@ pub enum Error {
 
     #[error("HTTP Error")]
     HttpError(#[from] crate::client::HttpClientError),
+
+    #[error("Internal Surf error")]
+    SurfError(surf::Error),
 
     #[error("IO error")]
     IOError(#[from] std::io::Error),
@@ -66,6 +69,12 @@ impl Error {
 impl From<(quick_xml::Error, usize)> for Error {
     fn from((source, position): (quick_xml::Error, usize)) -> Self {
         Error::XmlErrorWithPosition { source, position }
+    }
+}
+
+impl From<surf::Error> for Error {
+    fn from(err: surf::Error) -> Self {
+        Error::SurfError(err)
     }
 }
 

@@ -6,7 +6,7 @@ use crate::error::Result;
 const MAXIMUM_REDIRECTION: u8 = 5;
 
 /// User-Agent string (`LaresBot/<version> (+https://github.com/fanzeyi/lares)`)
-const USER_AGENT: &'static str = concat!(
+const USER_AGENT: &str = concat!(
     "LaresBot/",
     env!("CARGO_PKG_VERSION"),
     " (+https://github.com/fanzeyi/lares)"
@@ -23,10 +23,10 @@ pub enum HttpClientError {
     MissingLocationHeader,
 
     #[error("Unexpected status code: {}", _0)]
-    UnexpectedStatusCode(http::status::StatusCode),
+    UnexpectedStatusCode(tide::StatusCode),
 
-    #[error("Surf error")]
-    SurfError(#[from] surf::Exception),
+    #[error("Internal Surf error")]
+    SurfError(surf::Error),
 }
 
 impl HttpClient {
@@ -36,12 +36,12 @@ impl HttpClient {
 
         loop {
             let mut response = match surf::get(&url)
-                .set_header("User-Agent", USER_AGENT)
-                .set_header("Content-Length", "0")
+                .header("User-Agent", USER_AGENT)
+                .header("Content-Length", "0")
                 .await
             {
                 Ok(resp) => resp,
-                Err(e) => return Err(HttpClientError::from(e).into()),
+                Err(e) => return Err(HttpClientError::SurfError(e).into()),
             };
             let status = response.status();
 
@@ -57,10 +57,10 @@ impl HttpClient {
                 redirection_count += 1;
 
                 if let Some(location) = response.header("Location") {
-                    match Url::parse(location) {
+                    match Url::parse(location.as_str()) {
                         Ok(parsed) => url = parsed,
                         Err(e) if e == ParseError::RelativeUrlWithoutBase => {
-                            url.set_path(location);
+                            url.set_path(location.as_str());
                         }
                         Err(e) => break Err(e.into()),
                     }

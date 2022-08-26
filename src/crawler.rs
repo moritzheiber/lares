@@ -36,7 +36,7 @@ impl Crawler {
 
     pub async fn runloop(self) -> Result<()> {
         let mut interval = stream::interval(Duration::from_secs(self.interval_secs));
-        while let Some(_) = interval.next().await {
+        while (interval.next().await).is_some() {
             match self.crawl().await {
                 Ok(_) => (),
                 Err(e) => eprintln!("error: {:?}", e),

@@ -1,6 +1,6 @@
 use chrono::{DateTime, TimeZone, Utc};
 use r2d2_sqlite::SqliteConnectionManager;
-use rusqlite::{params, Connection, OptionalExtension, Row, NO_PARAMS};
+use rusqlite::{params, Connection, OptionalExtension, Row, ToSql};
 use serde::Serialize;
 use std::collections::HashSet;
 use std::path::Path;
@@ -8,6 +8,8 @@ use std::rc::Rc;
 
 use crate::client::HttpClient;
 use crate::error::{Error, Result};
+
+const NO_PARAMS: &[&dyn ToSql] = &[];
 
 pub trait Model: Sized {
     const TABLE: &'static str;
@@ -110,7 +112,7 @@ impl Group {
 
     pub fn add_feed(&self, conn: &Connection, mut feed: Feed) -> Result<Feed> {
         let feed_group = FeedGroup::new(self.id, feed.id);
-        feed_group.insert(&conn)?;
+        feed_group.insert(conn)?;
         conn.execute(
             "UPDATE `feed` SET `is_spark` = 0 WHERE `id` = ?1",
             params![feed.id],
@@ -120,7 +122,7 @@ impl Group {
     }
 
     pub fn read(&self, conn: &Connection, before: Option<u32>) -> Result<()> {
-        const BASE_SQL: &'static str = r"
+        const BASE_SQL: &str = r"
         UPDATE `item`
         SET `is_read` = 1
         WHERE `feed_id` IN (
@@ -293,7 +295,7 @@ impl Feed {
     }
 
     pub fn read(&self, conn: &Connection, before: Option<u32>) -> Result<()> {
-        const BASE_SQL: &'static str = "UPDATE `item` SET `is_read` = 1 WHERE `feed_id` = ?1";
+        const BASE_SQL: &str = "UPDATE `item` SET `is_read` = 1 WHERE `feed_id` = ?1";
         if let Some(before) = before {
             let before = Utc.timestamp(before as i64, 0);
             conn.execute(
@@ -641,7 +643,7 @@ impl Model for Item {
 
 pub fn get_pool(path: &Path) -> Result<r2d2::Pool<SqliteConnectionManager>> {
     let manager = SqliteConnectionManager::file(path).with_init(|c| {
-        rusqlite::vtab::array::load_module(&c)?;
+        rusqlite::vtab::array::load_module(c)?;
         Ok(())
     });
     let pool = r2d2::Pool::new(manager)?;
@@ -697,9 +699,7 @@ mod test {
         let feeds = result.get_feeds(&conn).unwrap();
         assert_eq!(feeds.len(), 2);
         let feed2_new = feeds
-            .into_iter()
-            .filter(|x| x.id == feed2.id)
-            .next()
+            .into_iter().find(|x| x.id == feed2.id)
             .unwrap();
         assert!(!feed2_new.is_spark);
         Ok(())

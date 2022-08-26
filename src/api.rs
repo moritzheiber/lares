@@ -10,7 +10,7 @@ use crate::model::{Feed, FeedGroup, Group, Item, ModelExt};
 use crate::state::State;
 use crate::utils::comma_join_vec;
 
-const API_VERSION: &'static str = "2";
+const API_VERSION: &str = "2";
 
 fn handle_groups(request: Request<State>) -> Result<impl Into<tide::Response>, tide::Error> {
     log::info!("requesting groups");

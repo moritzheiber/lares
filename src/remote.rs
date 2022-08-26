@@ -40,9 +40,7 @@ impl RemoteFeed {
         self.feed
             .links
             .iter()
-            .map(|l| l.href.as_str())
-            .filter(|&link| link != self.url)
-            .next()
+            .map(|l| l.href.as_str()).find(|&link| link != self.url)
             .map(|x| x.to_owned())
     }
 

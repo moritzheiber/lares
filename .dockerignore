@@ -1,3 +1,7 @@
-target/
-Dockerfile
-*.db
+/target
+/Dockerfile
+/*.db
+/.github
+/.gitignore
+/LICENSE
+/README.md
